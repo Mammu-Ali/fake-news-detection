@@ -47,3 +47,8 @@
 - [x] Write comprehensive architecture, setup, API, testing, security, deployment, and limitations documentation.
 - [x] Verify README commands and examples against the current project.
 - [ ] Commit and push the README update.
+
+- [x] Inspect current image URLs and available generated asset files without reopening the attached screenshot.
+- [x] Add local-safe image asset references for the existing brand and editorial artwork.
+- [x] Verify image requests, responsive rendering, and the production build.
+- [x] Save a checkpoint for the local image fix.

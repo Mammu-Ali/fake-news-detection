@@ -18,10 +18,11 @@ import {
 import { AnalysisApiError, analyzeDocument, analyzeText, analyzeUrl } from "@/lib/analysisApi";
 import { DOCUMENT_ACCEPT, MAX_DOCUMENT_BYTES, MAX_TEXT_CHARACTERS, MAX_URL_CHARACTERS, validateSubmissionInput, validateTextDocument } from "@/lib/inputValidation";
 
-const SIGNAL_MARK = "/manus-storage/signal-desk-mark_915b6abe.png";
-const PAPER_TEXTURE = "/manus-storage/paper-signal-texture_8a8f934c.png";
-const EVIDENCE_COLLAGE = "/manus-storage/evidence-collage_779ca6ff.png";
-const SIGNAL_ORBIT = "/manus-storage/signal-orbit_066a9e05.png";
+const LOCAL_ASSET_ROOT = "/assets";
+const SIGNAL_MARK = import.meta.env.DEV ? `${LOCAL_ASSET_ROOT}/signal-desk-mark.webp` : "/manus-storage/signal-desk-mark_164f070c.png";
+const PAPER_TEXTURE = import.meta.env.DEV ? `${LOCAL_ASSET_ROOT}/paper-signal-texture.webp` : "/manus-storage/paper-signal-texture_4b038edd.png";
+const EVIDENCE_COLLAGE = import.meta.env.DEV ? `${LOCAL_ASSET_ROOT}/evidence-collage.webp` : "/manus-storage/evidence-collage_fb64968b.png";
+const SIGNAL_ORBIT = import.meta.env.DEV ? `${LOCAL_ASSET_ROOT}/signal-orbit.webp` : "/manus-storage/signal-orbit_b86fdcc8.png";
 
 const modes = [
   { id: "text", label: "Paste text", icon: FileText },
