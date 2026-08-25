@@ -37,3 +37,8 @@
 - [x] Add the project test command and minimal test configuration.
 - [x] Document backend authentication and database failure tests that cannot run without the FastAPI service.
 - [x] Run the implemented tests and save a checkpoint.
+
+- [ ] Inspect Git status, branch, remotes, and repository visibility state.
+- [ ] Prepare a focused commit for the latest project state.
+- [ ] Create or configure a private GitHub remote if needed.
+- [ ] Push and verify the remote branch and commit.
