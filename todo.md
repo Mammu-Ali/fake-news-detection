@@ -7,3 +7,10 @@
 - [x] Remove TypeScript-only configuration and dependencies where safe.
 - [x] Run the JavaScript build and verify the main user flows and responsive layout.
 - [ ] Save a new checkpoint with the JavaScript-converted project.
+
+- [x] Add an environment-configurable FastAPI base URL and typed-by-convention JavaScript API client.
+- [x] Connect text, URL, and document submissions to the documented analysis endpoints.
+- [x] Handle loading, timeout, API errors, unavailable responses, and malformed responses.
+- [x] Add loading animations that communicate extraction and model analysis progress.
+- [x] Run build checks and verify the connected frontend visually.
+- [ ] Save a checkpoint for the FastAPI-connected frontend.
