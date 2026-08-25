@@ -289,3 +289,16 @@ textarea::placeholder { color: #969b94; }
 @media (prefers-reduced-motion: reduce) {
   .loading-ellipsis, .loading-orbit, .loading-bar span { animation: none; }
 }
+
+/* Signal Desk error recovery: explain the failure, then offer one direct next action. */
+.form-error { justify-content: space-between; flex-wrap: wrap; }
+.form-error-copy { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.form-error-copy span { line-height: 1.4; }
+.error-retry-button { border: 1px solid rgba(151,59,47,.35); background: #fff7f4; color: #973b2f; display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; font-family: "IBM Plex Mono", monospace; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; transition: background 160ms ease-out, color 160ms ease-out, transform 160ms ease-out; }
+.error-retry-button:hover { background: var(--coral); color: white; }
+.error-retry-button:active { transform: scale(.97); }
+.error-retry-button:disabled { opacity: .65; }
+@media (max-width: 640px) {
+  .form-error { align-items: flex-start; flex-direction: column; }
+  .error-retry-button { width: 100%; justify-content: center; }
+}

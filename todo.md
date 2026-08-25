@@ -14,3 +14,8 @@
 - [x] Add loading animations that communicate extraction and model analysis progress.
 - [x] Run build checks and verify the connected frontend visually.
 - [ ] Save a checkpoint for the FastAPI-connected frontend.
+
+- [x] Add a user-facing retry button to FastAPI timeout and connection-failure states.
+- [x] Preserve submitted input and selected mode when retrying.
+- [x] Verify retry returns to loading and handles repeated failures safely.
+- [ ] Save a checkpoint for the improved error state.
