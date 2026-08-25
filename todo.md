@@ -31,3 +31,9 @@
 - [x] Align upload format choices with the currently approved backend capability.
 - [x] Document FastAPI-only SSRF, upload, rate-limit, and CORS fixes that cannot be enforced in the static client.
 - [x] Run regression checks and save a checkpoint for the fixes.
+
+- [x] Map happy path, invalid input, edge cases, errors, authentication, and API/database failures to unit, integration, and end-to-end levels.
+- [x] Add executable unit tests for validation and API-client response/error handling.
+- [x] Add the project test command and minimal test configuration.
+- [x] Document backend authentication and database failure tests that cannot run without the FastAPI service.
+- [x] Run the implemented tests and save a checkpoint.

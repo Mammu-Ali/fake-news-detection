@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { AnalysisApiError, analyzeDocument, analyzeText, analyzeUrl } from "@/lib/analysisApi";
+import { DOCUMENT_ACCEPT, MAX_DOCUMENT_BYTES, MAX_TEXT_CHARACTERS, MAX_URL_CHARACTERS, validateSubmissionInput, validateTextDocument } from "@/lib/inputValidation";
 
 const SIGNAL_MARK = "/manus-storage/signal-desk-mark_915b6abe.png";
 const PAPER_TEXTURE = "/manus-storage/paper-signal-texture_8a8f934c.png";
@@ -30,10 +31,6 @@ const modes = [
 
 const demoArticle = `A new study claims that schools using one simple morning ritual have reduced student absence by 47% in just two weeks. The researchers say the result is “too consistent to ignore,” but the article does not name the study, the schools, or the researchers.`;
 const loadingStages = ["Preparing the item", "Reading language signals", "Assembling the readout"];
-const MAX_TEXT_CHARACTERS = 20000;
-const MAX_URL_CHARACTERS = 2048;
-const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
-const DOCUMENT_ACCEPT = ".txt,text/plain";
 
 function formatConfidence(value) {
   return `${Math.round(value * 100)}%`;
@@ -144,25 +141,12 @@ export default function Home() {
 
   const handleFile = (nextFile) => {
     cancelActiveRequest();
-    if (!nextFile) return;
-    if (nextFile.type !== "text/plain" && !/\.txt$/i.test(nextFile.name)) { setError("That file type is not supported. Choose a plain TXT file."); setRetryableError(false); setAnalysis(null); setStatus("error"); setFile(null); setFileName(""); return; }
-    if (nextFile.size > MAX_DOCUMENT_BYTES) { setError("This file is larger than 10 MB. Choose a smaller classroom example."); setRetryableError(false); setAnalysis(null); setStatus("error"); setFile(null); setFileName(""); return; }
+    const fileError = validateTextDocument(nextFile);
+    if (fileError) { setError(fileError); setRetryableError(false); setAnalysis(null); setStatus("error"); setFile(null); setFileName(""); return; }
     setError(""); setRetryableError(false); setAnalysis(null); setFile(nextFile); setFileName(nextFile.name); setStatus("idle");
   };
 
-  const validateInput = () => {
-    if (mode === "document" && !file) return "Choose a document before analysing it.";
-    if (mode !== "document" && !value.trim()) return mode === "url" ? "Paste an article URL to continue." : "Paste at least one paragraph to continue.";
-    if (mode === "url") {
-      if (value.trim().length > MAX_URL_CHARACTERS) return `Keep the URL under ${MAX_URL_CHARACTERS.toLocaleString()} characters.`;
-      try { const parsed = new URL(value.trim()); if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("invalid"); } catch { return "Use a complete public URL beginning with https://."; }
-    }
-    if (mode === "text") {
-      if (value.length > MAX_TEXT_CHARACTERS) return `Keep pasted text under ${MAX_TEXT_CHARACTERS.toLocaleString()} characters.`;
-      if (value.trim().length < 80) return "Add a little more context—at least 80 characters helps the model read the claim.";
-    }
-    return "";
-  };
+  const validateInput = () => validateSubmissionInput({ mode, value, file });
 
   const handleAnalyze = async () => {
     const validationError = validateInput();
