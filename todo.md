@@ -19,3 +19,15 @@
 - [x] Preserve submitted input and selected mode when retrying.
 - [x] Verify retry returns to loading and handles repeated failures safely.
 - [ ] Save a checkpoint for the improved error state.
+
+- [ ] Review frontend and API client for confirmed bugs.
+- [ ] Review security boundaries and deployment/configuration risks.
+- [ ] Review performance, architecture, and duplicated logic.
+- [ ] Deliver a senior-engineering review with Problem, Why, and Fix for each issue.
+
+- [x] Fix stale error and retry state after input or file changes.
+- [x] Add component unmount cleanup for pending requests and loading timers.
+- [x] Add client-side maximum payload limits and make the limit explicit to users.
+- [x] Align upload format choices with the currently approved backend capability.
+- [x] Document FastAPI-only SSRF, upload, rate-limit, and CORS fixes that cannot be enforced in the static client.
+- [x] Run regression checks and save a checkpoint for the fixes.

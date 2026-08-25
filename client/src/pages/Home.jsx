@@ -1,5 +1,5 @@
 /* Signal Desk style: editorial research desk, parchment surfaces, ink typography, cobalt evidence marks, coral caution signal. */
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
   Check,
@@ -30,6 +30,10 @@ const modes = [
 
 const demoArticle = `A new study claims that schools using one simple morning ritual have reduced student absence by 47% in just two weeks. The researchers say the result is “too consistent to ignore,” but the article does not name the study, the schools, or the researchers.`;
 const loadingStages = ["Preparing the item", "Reading language signals", "Assembling the readout"];
+const MAX_TEXT_CHARACTERS = 20000;
+const MAX_URL_CHARACTERS = 2048;
+const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+const DOCUMENT_ACCEPT = ".txt,text/plain";
 
 function formatConfidence(value) {
   return `${Math.round(value * 100)}%`;
@@ -123,43 +127,58 @@ export default function Home() {
     loadingTimerRef.current = null;
   };
 
-  const handleModeChange = (nextMode) => {
+  const cancelActiveRequest = () => {
     requestRef.current?.abort();
+    requestRef.current = null;
     clearRequestTimers();
+  };
+
+  useEffect(() => () => {
+    cancelActiveRequest();
+  }, []);
+
+  const handleModeChange = (nextMode) => {
+    cancelActiveRequest();
     setMode(nextMode); setValue(""); setFile(null); setFileName(""); setError(""); setRetryableError(false); setAnalysis(null); setStatus("idle");
   };
 
   const handleFile = (nextFile) => {
+    cancelActiveRequest();
     if (!nextFile) return;
-    const allowed = ["text/plain", "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
-    if (!allowed.includes(nextFile.type) && !/\.(txt|pdf|docx)$/i.test(nextFile.name)) { setError("That file type is not supported. Choose a TXT, PDF, or DOCX file."); setFile(null); setFileName(""); return; }
-    if (nextFile.size > 10 * 1024 * 1024) { setError("This file is larger than 10 MB. Choose a smaller classroom example."); setFile(null); setFileName(""); return; }
-    setError(""); setFile(nextFile); setFileName(nextFile.name); setStatus("idle");
+    if (nextFile.type !== "text/plain" && !/\.txt$/i.test(nextFile.name)) { setError("That file type is not supported. Choose a plain TXT file."); setRetryableError(false); setAnalysis(null); setStatus("error"); setFile(null); setFileName(""); return; }
+    if (nextFile.size > MAX_DOCUMENT_BYTES) { setError("This file is larger than 10 MB. Choose a smaller classroom example."); setRetryableError(false); setAnalysis(null); setStatus("error"); setFile(null); setFileName(""); return; }
+    setError(""); setRetryableError(false); setAnalysis(null); setFile(nextFile); setFileName(nextFile.name); setStatus("idle");
   };
 
   const validateInput = () => {
     if (mode === "document" && !file) return "Choose a document before analysing it.";
     if (mode !== "document" && !value.trim()) return mode === "url" ? "Paste an article URL to continue." : "Paste at least one paragraph to continue.";
     if (mode === "url") {
+      if (value.trim().length > MAX_URL_CHARACTERS) return `Keep the URL under ${MAX_URL_CHARACTERS.toLocaleString()} characters.`;
       try { const parsed = new URL(value.trim()); if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("invalid"); } catch { return "Use a complete public URL beginning with https://."; }
     }
-    if (mode === "text" && value.trim().length < 80) return "Add a little more context—at least 80 characters helps the model read the claim.";
+    if (mode === "text") {
+      if (value.length > MAX_TEXT_CHARACTERS) return `Keep pasted text under ${MAX_TEXT_CHARACTERS.toLocaleString()} characters.`;
+      if (value.trim().length < 80) return "Add a little more context—at least 80 characters helps the model read the claim.";
+    }
     return "";
   };
 
   const handleAnalyze = async () => {
     const validationError = validateInput();
     if (validationError) { setError(validationError); setRetryableError(false); setStatus("error"); return; }
-    requestRef.current?.abort();
-    clearRequestTimers();
+    cancelActiveRequest();
+    const requestMode = mode;
+    const requestValue = value.trim();
+    const requestFile = file;
     const controller = new AbortController();
     requestRef.current = controller;
     setError(""); setRetryableError(false); setAnalysis(null); setStatus("loading"); setLoadingStep(0);
     let currentStep = 0;
     loadingTimerRef.current = window.setInterval(() => { currentStep = Math.min(currentStep + 1, loadingStages.length - 1); setLoadingStep(currentStep); }, 900);
     try {
-      const response = mode === "text" ? await analyzeText(value.trim(), { signal: controller.signal }) : mode === "url" ? await analyzeUrl(value.trim(), { signal: controller.signal }) : await analyzeDocument(file, { signal: controller.signal });
-      setAnalysis(normalizeAnalysis(response, mode)); setLoadingStep(2); setStatus("result");
+      const response = requestMode === "text" ? await analyzeText(requestValue, { signal: controller.signal }) : requestMode === "url" ? await analyzeUrl(requestValue, { signal: controller.signal }) : await analyzeDocument(requestFile, { signal: controller.signal });
+      setAnalysis(normalizeAnalysis(response, requestMode)); setLoadingStep(2); setStatus("result");
     } catch (requestError) {
       if (controller.signal.aborted) return;
       if (requestError?.code === "REQUEST_TIMEOUT" || requestError?.code === "NETWORK_ERROR" || requestError instanceof AnalysisApiError) { setError(requestError.message); setRetryableError(true); setStatus("error"); }
@@ -170,15 +189,15 @@ export default function Home() {
     }
   };
 
-  const loadExample = () => { setMode("text"); setValue(demoArticle); setFile(null); setFileName(""); setError(""); setRetryableError(false); setAnalysis(null); setStatus("idle"); };
-  const reset = () => { requestRef.current?.abort(); clearRequestTimers(); setValue(""); setFile(null); setFileName(""); setError(""); setRetryableError(false); setAnalysis(null); setStatus("idle"); };
+  const loadExample = () => { cancelActiveRequest(); setMode("text"); setValue(demoArticle); setFile(null); setFileName(""); setError(""); setRetryableError(false); setAnalysis(null); setStatus("idle"); };
+  const reset = () => { cancelActiveRequest(); setValue(""); setFile(null); setFileName(""); setError(""); setRetryableError(false); setAnalysis(null); setStatus("idle"); };
 
   return (
     <div className="signal-app" style={{ backgroundImage: `url(${PAPER_TEXTURE})` }}>
       <header className="site-header"><a className="brand" href="/" aria-label="Signal Desk home"><img src={SIGNAL_MARK} alt="" className="brand-mark" /><span className="brand-name">signal<span>desk</span></span></a><nav className="header-nav" aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#classroom">For the classroom</a></nav><div className="header-status"><span className="status-ring" /> educational prototype <ChevronDown size={14} /></div></header>
       <main>
         <section className="hero-shell"><aside className="hero-rail"><span className="rail-label">ANALYSIS / 01</span><div className="rail-line"><span className="rail-pip" /></div><span className="rail-label rail-bottom">MODEL, MEET HUMAN</span></aside><div className="hero-copy"><p className="eyebrow"><span className="signal-dot" /> A CLASSROOM TOOL FOR READING THE READOUT</p><h1>Don’t just ask if it’s fake.<br /><em>Ask what the model saw.</em></h1><p className="hero-lede">Signal Desk turns a news item into a teachable moment—prediction, confidence, signals, and the limits that belong beside them.</p><div className="hero-actions"><button className="primary-button" onClick={() => document.getElementById("analyser")?.scrollIntoView({ behavior: "smooth" })}>Analyse an item <ArrowUpRight size={16} /></button><button className="quiet-button" onClick={loadExample}>Try a classroom example <span>↗</span></button></div></div><div className="hero-art"><img src={EVIDENCE_COLLAGE} alt="Printed news page and evidence cards arranged on a research desk" /><div className="art-caption"><span>FIELD NOTE 01</span><span>Evidence needs context.</span></div></div></section>
-        <section className="analyser-wrap" id="analyser"><div className="section-marker"><span className="marker-number">02</span><span>RUN A READOUT</span></div><div className="analyser-card"><div className="analyser-intro"><div><p className="eyebrow">INPUT DESK <span className="slash">/</span> AVAILABLE NOW</p><h2>Bring a news item.<br /><span>Leave with questions.</span></h2></div><img src={SIGNAL_ORBIT} alt="Abstract signal orbit mark" /></div><div className="mode-tabs" role="tablist" aria-label="Choose input type">{modes.map(({ id, label, icon: Icon }) => <button key={id} role="tab" aria-selected={mode === id} className={mode === id ? "mode-tab active" : "mode-tab"} onClick={() => handleModeChange(id)}><Icon size={16} />{label}</button>)}</div><div className="input-zone">{mode === "document" ? <label className="upload-zone"><input type="file" accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => handleFile(event.target.files?.[0])} /><Upload size={24} /><strong>{fileName || "Drop a classroom document here"}</strong><span>{fileName ? "Ready to analyse" : "TXT, PDF, or DOCX · 10 MB max"}</span>{fileName && <button type="button" className="remove-file" onClick={(event) => { event.preventDefault(); setFile(null); setFileName(""); }}> <X size={14} /> remove</button>}</label> : <textarea value={value} onChange={(event) => { setValue(event.target.value); if (status !== "idle") setStatus("idle"); }} placeholder={placeholder} aria-label={mode === "url" ? "Article URL" : "Article text"} rows={7} />}<div className="input-meta"><span>{mode === "text" ? `${value.length} characters` : mode === "url" ? "Public pages only" : fileName ? "File selected" : "No file selected"}</span><span>Nothing is saved by default</span></div></div>{error && <div className="form-error" role="alert"><div className="form-error-copy"><CircleAlert size={16} /><span>{error}</span></div>{retryableError && <button type="button" className="error-retry-button" onClick={handleAnalyze} disabled={status === "loading"}><RotateCcw size={14} /> Retry analysis</button>}</div>}<div className="analyser-footer"><p><span className="tiny-ring" /> Prediction, not proof. Always verify consequential claims.</p><button className="analyze-button" onClick={handleAnalyze} disabled={status === "loading"}>{status === "loading" ? <><Loader2 className="spin" size={16} /> Reading signals…</> : <>Analyze this item <ArrowUpRight size={16} /></>}</button></div></div></section>
+        <section className="analyser-wrap" id="analyser"><div className="section-marker"><span className="marker-number">02</span><span>RUN A READOUT</span></div><div className="analyser-card"><div className="analyser-intro"><div><p className="eyebrow">INPUT DESK <span className="slash">/</span> AVAILABLE NOW</p><h2>Bring a news item.<br /><span>Leave with questions.</span></h2></div><img src={SIGNAL_ORBIT} alt="Abstract signal orbit mark" /></div><div className="mode-tabs" role="tablist" aria-label="Choose input type">{modes.map(({ id, label, icon: Icon }) => <button key={id} role="tab" aria-selected={mode === id} className={mode === id ? "mode-tab active" : "mode-tab"} onClick={() => handleModeChange(id)}><Icon size={16} />{label}</button>)}</div><div className="input-zone">{mode === "document" ? <label className="upload-zone"><input type="file" accept={DOCUMENT_ACCEPT} onChange={(event) => handleFile(event.target.files?.[0])} /><Upload size={24} /><strong>{fileName || "Drop a plain-text file here"}</strong><span>{fileName ? "Ready to analyse" : "TXT · 10 MB max"}</span>{fileName && <button type="button" className="remove-file" onClick={(event) => { event.preventDefault(); setFile(null); setFileName(""); }}> <X size={14} /> remove</button>}</label> : <textarea value={value} maxLength={mode === "url" ? MAX_URL_CHARACTERS : MAX_TEXT_CHARACTERS} onChange={(event) => { cancelActiveRequest(); setValue(event.target.value); setError(""); setRetryableError(false); setAnalysis(null); if (status !== "idle") setStatus("idle"); }} placeholder={placeholder} aria-label={mode === "url" ? "Article URL" : "Article text"} rows={7} />}<div className="input-meta"><span>{mode === "text" ? `${value.length.toLocaleString()} / ${MAX_TEXT_CHARACTERS.toLocaleString()} characters` : mode === "url" ? `${value.length.toLocaleString()} / ${MAX_URL_CHARACTERS.toLocaleString()} characters` : fileName ? "File selected" : "No file selected"}</span><span>Nothing is saved by default</span></div></div>{error && <div className="form-error" role="alert"><div className="form-error-copy"><CircleAlert size={16} /><span>{error}</span></div>{retryableError && <button type="button" className="error-retry-button" onClick={handleAnalyze} disabled={status === "loading"}><RotateCcw size={14} /> Retry analysis</button>}</div>}<div className="analyser-footer"><p><span className="tiny-ring" /> Prediction, not proof. Always verify consequential claims.</p><button className="analyze-button" onClick={handleAnalyze} disabled={status === "loading"}>{status === "loading" ? <><Loader2 className="spin" size={16} /> Reading signals…</> : <>Analyze this item <ArrowUpRight size={16} /></>}</button></div></div></section>
         {status === "loading" && <div className="result-wrap"><LoadingReadout activeStep={loadingStep} /></div>}
         {status === "result" && analysis && <div className="result-wrap"><ResultPanel analysis={analysis} onReset={reset} onRetry={handleAnalyze} /></div>}
         <section className="method-section" id="how-it-works"><div className="section-marker"><span className="marker-number">03</span><span>THE SHORT VERSION</span></div><div className="method-content"><div><p className="eyebrow">HOW IT WORKS</p><h2>A label is the beginning<br />of the conversation.</h2></div><div className="method-copy"><p>Signal Desk uses a research-informed text model to spot patterns in language and context. It does not know whether a claim is true. It can only show you what its training has taught it to notice.</p><a href="#classroom" className="learn-link">Read the teaching notes <ArrowUpRight size={15} /></a></div></div><div className="method-steps"><div><span>01</span><strong>Submit a claim</strong><p>Paste text, a public URL, or a supported document.</p></div><div><span>02</span><strong>Inspect the signals</strong><p>See the patterns associated with the prediction.</p></div><div><span>03</span><strong>Verify like a human</strong><p>Check sources, context, and the original claim.</p></div></div></section>
