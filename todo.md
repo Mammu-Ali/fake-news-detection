@@ -38,7 +38,12 @@
 - [x] Document backend authentication and database failure tests that cannot run without the FastAPI service.
 - [x] Run the implemented tests and save a checkpoint.
 
-- [ ] Inspect Git status, branch, remotes, and repository visibility state.
-- [ ] Prepare a focused commit for the latest project state.
-- [ ] Create or configure a private GitHub remote if needed.
-- [ ] Push and verify the remote branch and commit.
+- [x] Inspect Git status, branch, remotes, and repository visibility state.
+- [x] Prepare a focused commit for the latest project state.
+- [x] Create or configure a private GitHub remote if needed.
+- [x] Push and verify the remote branch and commit.
+
+- [x] Review implemented project files and architecture/API documents for README facts.
+- [x] Write comprehensive architecture, setup, API, testing, security, deployment, and limitations documentation.
+- [x] Verify README commands and examples against the current project.
+- [ ] Commit and push the README update.
